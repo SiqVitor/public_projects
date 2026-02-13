@@ -26,6 +26,10 @@ Thumbs.db
 # Docker
 *.log
 
+# Cache
+.ruff_cache/
+.pytest_cache/
+
 # Poetry
 poetry.lock
 

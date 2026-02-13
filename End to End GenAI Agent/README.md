@@ -1,6 +1,6 @@
 # ARGUS — AI Research & Analysis Agent
 
-> Production-ready multi-agent system built with LangGraph, demonstrating end-to-end GenAI engineering.
+A production-grade multi-agent system built with LangGraph that performs automated research, data analysis, and document-grounded Q&A. Designed as an end-to-end demonstration of GenAI engineering practices.
 
 [![CI](https://img.shields.io/badge/CI-passing-brightgreen)]()
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)]()
@@ -8,12 +8,15 @@
 
 ## Features
 
-- **Multi-Agent Orchestration** — LangGraph state machine with intelligent routing
-- **RAG Pipeline** — Hybrid search (dense + sparse) with citations
-- **Tool Use** — Web search, data analysis, visualization generation
-- **Streaming** — Real-time token streaming via SSE
-- **Evaluation** — Automated evaluation pipeline with custom metrics
-- **Production-Ready** — Docker, CI/CD, rate limiting, structured logging
+**Multi-Agent Orchestration** — A LangGraph state machine routes queries to specialized agents (research, analysis, RAG) based on intent classification, with persistent memory and checkpointing.
+
+**RAG Pipeline** — Hybrid retrieval combining dense vector search and sparse BM25 scoring, with source citations on every response.
+
+**Tool Use** — Agents can search the web, execute Python for data analysis, and generate visualizations on the fly.
+
+**Streaming** — Real-time token delivery via Server-Sent Events, with live tool-call status updates.
+
+**Evaluation** — Automated evaluation pipeline measuring faithfulness, relevance, citation accuracy, and latency.
 
 ## Architecture
 
@@ -41,24 +44,19 @@ User → Streamlit UI → FastAPI → LangGraph Orchestrator
 ## Quick Start
 
 ```bash
-# Clone
-git clone https://github.com/YOUR_USERNAME/argus.git
-cd argus
+git clone https://github.com/SiqVitor/public_projects.git
+cd "public_projects/End to End GenAI Agent"
 
-# Setup environment
 cp .env.example .env
 # Fill in your API keys in .env
 
-# Install dependencies
 poetry install --with dev
-
-# Start infrastructure
 docker-compose up -d
 
-# Run the API
+# API
 poetry run uvicorn argus.api.app:app --reload
 
-# Run the frontend (separate terminal)
+# Frontend (separate terminal)
 poetry run streamlit run src/frontend/app.py
 ```
 
@@ -72,4 +70,4 @@ Proprietary — see [LICENSE](LICENSE)
 
 ---
 
-Built by **Vitor de Siqueira Rodrigues** — Senior ML Engineer
+Built by **Vitor de Siqueira Rodrigues**

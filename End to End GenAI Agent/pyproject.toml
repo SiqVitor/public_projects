@@ -1,12 +1,12 @@
 [project]
 name = "argus"
 version = "0.1.0"
-description = ""
+description = "Multi-agent system for automated research, data analysis, and document-grounded Q&A"
 authors = [
     {name = "Vitor de Siqueira Rodrigues"}
 ]
 license = {text = "Proprietary"}
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 dependencies = [
 ]
 
