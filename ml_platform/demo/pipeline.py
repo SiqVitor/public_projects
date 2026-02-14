@@ -34,6 +34,22 @@ REGISTRY_DIR = RESULTS_DIR / "model_registry"
 
 
 # ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def calculate_psi(expected: np.ndarray, actual: np.ndarray, buckets: int = 10) -> float:
+    """Calculates Population Stability Index (PSI) to detect feature-level drift."""
+    expected_percents = np.histogram(expected, bins=buckets)[0] / len(expected)
+    actual_percents = np.histogram(actual, bins=buckets)[0] / len(actual)
+
+    # Handle zero-counts with small epsilon
+    expected_percents = np.clip(expected_percents, 1e-6, 1.0)
+    actual_percents = np.clip(actual_percents, 1e-6, 1.0)
+
+    psi_value = np.sum((expected_percents - actual_percents) * np.log(expected_percents / actual_percents))
+    return float(psi_value)
+
+# ---------------------------------------------------------------------------
 # Step 1: Data generation
 # ---------------------------------------------------------------------------
 
@@ -124,6 +140,18 @@ def validate_data(df: pd.DataFrame) -> dict:
             "check": "amount_range",
             "status": "PASS" if df["transaction_amount"].min() > 0 else "FAIL",
             "detail": f"min={df['transaction_amount'].min():.2f}, max={df['transaction_amount'].max():.2f}",
+        }
+    )
+
+    # Drift check (PSI)
+    # Simulate historical distribution as mean-centered Gaussian
+    hist_amount = np.random.lognormal(4.5, 1.0, 1000)
+    psi = calculate_psi(hist_amount, df["transaction_amount"].values)
+    checks.append(
+        {
+            "check": "data_drift_psi",
+            "status": "PASS" if psi < 0.2 else "WARN",
+            "detail": f"psi={psi:.4f} (threshold=0.2)",
         }
     )
 
@@ -223,10 +251,24 @@ def train_and_evaluate(df: pd.DataFrame, seed: int = 42) -> dict:
 # ---------------------------------------------------------------------------
 
 
-def select_champion(results: dict) -> str:
-    best_name = max(results, key=lambda k: results[k]["metrics"]["ROC-AUC"])
-    print(f"\n  Champion: {best_name} (AUC={results[best_name]['metrics']['ROC-AUC']:.4f})")
-    return best_name
+def select_champion(results: dict, prod_metrics: dict = None) -> str:
+    challenger_name = max(results, key=lambda k: results[k]["metrics"]["ROC-AUC"])
+    challenger_auc = results[challenger_name]["metrics"]["ROC-AUC"]
+
+    if prod_metrics and "ROC-AUC" in prod_metrics:
+        prod_auc = prod_metrics["ROC-AUC"]
+        print(f"\n  Challenger: {challenger_name} (AUC={challenger_auc:.4f})")
+        print(f"  Production: {prod_auc:.4f}")
+
+        if challenger_auc > prod_auc:
+            print(f"  [*] SUCCESS: Challenger outperformed Production. Selecting {challenger_name}.")
+            return challenger_name
+        else:
+            print(f"  [!] REJECTED: Challenger did not outperform Production. Keeping current system.")
+            return None
+
+    print(f"\n  Champion (Initial): {challenger_name} (AUC={challenger_auc:.4f})")
+    return challenger_name
 
 
 def register_model(model, model_name: str, metrics: dict, data_hash: str, params: dict):
@@ -271,8 +313,7 @@ def register_model(model, model_name: str, metrics: dict, data_hash: str, params
 
 def run_pipeline():
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    if REGISTRY_DIR.exists():
-        shutil.rmtree(REGISTRY_DIR)
+    # Registry is now persistent to support Champion-Challenger logic
 
     t0 = time.time()
 
@@ -302,17 +343,36 @@ def run_pipeline():
 
     # Step 6
     print("\n=== Step 6/6: Champion Selection + Registration ===")
-    champion_name = select_champion(results)
-    champion = results[champion_name]
 
-    params = (
-        {"n_estimators": 200, "max_depth": 5, "learning_rate": 0.05}
-        if champion_name == "LightGBM"
-        else {"max_iter": 1000}
-    )
-    metadata = register_model(
-        champion["model"], champion_name, champion["metrics"], data_hash, params
-    )
+    # Load current production metrics if any
+    prod_metrics = None
+    last_version = 0
+    if REGISTRY_DIR.exists():
+        versions = sorted([int(d.name.lstrip("v")) for d in REGISTRY_DIR.iterdir() if d.name.startswith("v")])
+        if versions:
+            last_version = versions[-1]
+            with open(REGISTRY_DIR / f"v{last_version}" / "metadata.json", "r") as f:
+                prod_metrics = json.load(f).get("metrics")
+
+    champion_name = select_champion(results, prod_metrics)
+
+    if champion_name:
+        champion = results[champion_name]
+        params = (
+            {"n_estimators": 200, "max_depth": 5, "learning_rate": 0.05}
+            if champion_name == "LightGBM"
+            else {"max_iter": 1000}
+        )
+        metadata = register_model(
+            champion["model"], champion_name, champion["metrics"], data_hash, params
+        )
+        registered_version = metadata["version"]
+        champion_metrics = {k: round(v, 6) for k, v in champion["metrics"].items()}
+    else:
+        print("  Pipeline finished without registration (challenger underperformed)")
+        registered_version = last_version
+        champion_name = "Production (Unchanged)"
+        champion_metrics = prod_metrics
 
     # Write consolidated metrics
     duration = time.time() - t0
@@ -324,16 +384,19 @@ def run_pipeline():
             name: {k: round(v, 6) for k, v in r["metrics"].items()} for name, r in results.items()
         },
         "champion": champion_name,
-        "champion_metrics": {k: round(v, 6) for k, v in champion["metrics"].items()},
-        "registered_version": metadata["version"],
+        "champion_metrics": champion_metrics,
+        "registered_version": registered_version,
     }
     with open(RESULTS_DIR / "metrics.json", "w") as f:
         json.dump(metrics_output, f, indent=2)
 
     print(f"\n=== Pipeline complete in {duration:.1f}s ===")
     print(f"  Results:  {RESULTS_DIR / 'metrics.json'}")
-    version_tag = f"v{metadata['version']}"
-    print(f"  Model:    {REGISTRY_DIR / version_tag}")
+    if champion_name != "Production (Unchanged)":
+        version_tag = f"v{metadata['version']}"
+        print(f"  Model:    {REGISTRY_DIR / version_tag}")
+    else:
+        print(f"  Model:    {REGISTRY_DIR / f'v{registered_version}'} (using current production)")
     return metrics_output
 
 

@@ -60,9 +60,25 @@ poetry run uvicorn argus.api.app:app --reload
 poetry run streamlit run src/frontend/app.py
 ```
 
-## Evaluation Results
+## Interaction & Evaluation
 
-_Coming soon_
+Since the core LangGraph engine is a proprietary case study, you can explore the system's logic using the provided simulation tools:
+
+### 1. Interactive CLI Demo
+Experience the grounding and citation behavior in an interactive session.
+```bash
+python genai_agent/demo/interactive_demo.py
+```
+**Try asking:**
+- "What was the Q3 revenue?"
+- "Who is the CEO?" (to see how it handles missing evidence)
+
+### 2. Automated Evaluation Pipeline
+Run the metrics-first evaluation to check faithfulness and citation accuracy.
+```bash
+bash genai_agent/demo/run_local_eval.sh
+```
+Results will be saved to `genai_agent/demo/results/eval_report.json`.
 
 ## License
 

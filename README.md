@@ -35,26 +35,41 @@
 | [ds_tools](ds_tools/) | Reusable ML toolkit — sklearn transformers, evaluation reports, drift monitoring |
 | [Kaggle Competitions](kaggle/) | House Prices (top 12.5%), Titanic, applied statistics |
 
-## Run a 10-Minute Demo
+## 🧪 Premium Interactive Workspace
 
+Experience the transition from "demo mocks" to **real production logic** through a unified web-based dashboard.
+
+### 🚀 Quick Start (Docker)
+1.  **Build**: `docker build -t portfolio-demo .`
+2.  **Run**: `docker run -p 7860:7860 portfolio-demo`
+3.  **Explore**: Open [http://localhost:7860](http://localhost:7860) in your browser.
+
+### 🕹️ What to Test in the Workspace:
+1.  **ARGUS Chat**: Ask *"Analyze the trends in genai_agent/demo/test_expenses.csv"*. (Note: Requires Gemini API Key in `genai_agent/.env`).
+2.  **CSV Tooling**: Upload a personal CSV using the paperclip icon and ask ARGUS to summarize it.
+3.  **ML Dashboard**: Click "ML Dashboard" in the sidebar to view P99 latency and model versioning metrics in real-time.
+4.  **Simulation Control**: Trigger a full system integration test directly from the UI and watch the logs.
+
+---
+
+## 🚀 Alternative Manual Run
+
+Requires Python 3.10+.
 ```bash
-# Option 1: Docker (recommended — nothing to install)
-docker build -t portfolio-demo .
-docker run --rm portfolio-demo
+# Install local toolkit and dependencies
+pip install -e ds_tools/
+pip install -r genai_agent/requirements.txt
+pip install lightgbm pandas scikit-learn
 
-# Option 2: Local Python (requires Python 3.10+)
-pip install -e ds_tools/ && pip install lightgbm matplotlib
+# Run all demos
 bash fraud_detection/demo/run_demo.sh
-bash realtime_ml_system/demo/run_demo.sh
-bash ml_platform/demo/run_pipeline.sh
+python realtime_ml_system/demo/online_inference.py
+python ml_platform/demo/pipeline.py
 ```
 
-**Expected outputs:**
-- `fraud_detection/demo/results/summary.json` — ROC-AUC, Brier Score, ECE, classification report
-- `realtime_ml_system/demo/results/summary.json` — latency p50/p95/p99, throughput, online AUC
-- `ml_platform/demo/results/metrics.json` — champion model, validation report, registered version
+---
 
-## Documentation
+## 📚 Documentation
 
 | Document | Audience |
 |----------|----------|
