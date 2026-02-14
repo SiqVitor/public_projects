@@ -1,12 +1,44 @@
 import os
 import shutil
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from genai_agent.src.engine import ArgusEngine
 import json
 import asyncio
 from pathlib import Path
+
+from collections import defaultdict
+import datetime
+
+# --- Rate Limiter ---
+class RateLimiter:
+    def __init__(self, requests_per_minute=5, daily_limit=50):
+        self.rpm = requests_per_minute
+        self.daily_limit = daily_limit
+        self.history = defaultdict(list)
+        self.daily_count = defaultdict(lambda: {"count": 0, "date": None})
+
+    def is_allowed(self, ip: str):
+        now = datetime.datetime.now()
+        today = now.date()
+
+        # Daily limit check
+        if self.daily_count[ip]["date"] != today:
+            self.daily_count[ip] = {"count": 0, "date": today}
+        if self.daily_count[ip]["count"] >= self.daily_limit:
+            return False, "Daily limit reached. Try again tomorrow."
+
+        # RPM check
+        self.history[ip] = [t for t in self.history[ip] if (now - t).total_seconds() < 60]
+        if len(self.history[ip]) >= self.rpm:
+            return False, f"Too many requests. Please wait {60 - int((now - self.history[ip][0]).total_seconds())}s."
+
+        self.history[ip].append(now)
+        self.daily_count[ip]["count"] += 1
+        return True, ""
+
+limiter = RateLimiter()
 
 app = FastAPI()
 engine = None
@@ -34,8 +66,13 @@ async def get_index():
 import time
 
 @app.post("/chat")
-async def chat(message: str = Form(...), file_path: str = Form(None)):
+async def chat(request: Request, message: str = Form(...), file_path: str = Form(None)):
     global engine
+    ip = request.client.host
+    allowed, reason = limiter.is_allowed(ip)
+    if not allowed:
+        return StreamingResponse(iter([f"ERROR: {reason}"]), media_type="text/plain", status_code=429)
+
     start_time = time.time()
 
     if not engine:
@@ -61,6 +98,13 @@ async def chat(message: str = Form(...), file_path: str = Form(None)):
         print(f"[*] Total response time: {time.time() - start_time:.2f}s")
 
     return StreamingResponse(generate(), media_type="text/plain")
+
+@app.post("/reset")
+async def reset_session():
+    global engine
+    if engine:
+        engine.reset_chat()
+    return {"status": "session reset"}
 
 @app.get("/run-simulation")
 async def run_simulation():

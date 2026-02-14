@@ -1,91 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vitor | AI & ML Engineering Portfolio</title>
+    <title>ARGUS | AI Data Analysis</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="/static/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body class="dark-theme">
-    <div class="glass-container">
-        <aside class="sidebar">
-            <div class="profile">
-                <div class="avatar">VR</div>
-                <h2>Vitor Rodrigues</h2>
-                <p>Senior ML Engineer</p>
-            </div>
-            <nav>
-                <button class="nav-btn active" data-section="agent">ARGUS Agent</button>
-                <button class="nav-btn" data-section="dashboard">ML Dashboard</button>
-            </nav>
-            <div class="sidebar-footer">
-                <a href="https://github.com/SiqVitor" target="_blank">GitHub</a>
-                <a href="https://linkedin.com/in/r-vitor" target="_blank">LinkedIn</a>
-            </div>
-        </aside>
 
-        <main class="content">
-            <!-- Agent Section -->
-            <section id="agent-section" class="active-section">
-                <header>
-                    <h1>ARGUS Research Agent</h1>
-                    <span class="status-badge">Live Engine</span>
-                </header>
-                <div class="chat-window" id="chat-window">
-                    <div class="message system">
-                        Hello! I am ARGUS. How can I assist your research today?
-                        <br><small>Tip: Upload a CSV for grounded analysis.</small>
+<body>
+    <div class="main-container">
+        <!-- Privacy Top Bar -->
+        <div class="privacy-notice">
+            <span class="notice-icon">Caution</span>
+            <span class="notice-text">Free Tier Engine: Do not share sensitive data. Conversations may be used by Google
+                to improve services.</span>
+        </div>
+
+        <div class="glass-container">
+            <!-- Simplified Header -->
+            <header class="agent-header">
+                <div class="header-content">
+                    <div class="brand">
+                        <h1>ARGUS</h1>
+                        <p class="subtitle">Analytical Research Guide</p>
+                    </div>
+                    <div class="engine-status">
+                        <span class="status-dot"></span>
+                        <span class="status-msg">Live Connection</span>
                     </div>
                 </div>
-                <div class="input-area">
-                    <div class="file-preview" id="file-preview" style="display: none;">
-                        <span id="file-name">filename.csv</span>
-                        <button id="remove-file">×</button>
+            </header>
+
+            <!-- Chat Central Area -->
+            <div class="chat-container">
+                <div class="chat-window" id="chat-window">
+                    <div class="message system-msg">
+                        <p><strong>System initialized.</strong> Ready for data interrogation. Upload a CSV or ask about
+                            the portfolio architecture to begin.</p>
                     </div>
-                    <form id="chat-form">
-                        <label for="csv-upload" class="upload-btn">📎</label>
-                        <input type="file" id="csv-upload" accept=".csv" style="display: none;">
-                        <input type="text" id="user-input" placeholder="Ask about revenue, operational presence, or data..." autocomplete="off">
-                        <button type="submit" id="send-btn">Send</button>
+                </div>
+
+                <div class="typing-indicator" id="typing-indicator">
+                    <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                    <span class="typing-text">Analyzing stream...</span>
+                </div>
+
+                <!-- Rate Limit Toast (Hidden by default) -->
+                <div id="error-toast" class="error-toast" style="display: none;">
+                    <span id="error-message">Rate limit exceeded. Please wait.</span>
+                </div>
+
+                <div class="input-container">
+                    <div id="file-preview" class="file-preview-shelf" style="display: none;">
+                        <span class="file-item">
+                            <span class="file-icon">Data:</span>
+                            <span id="file-name">file.csv</span>
+                            <button id="remove-file" class="remove-btn">Discard</button>
+                        </span>
+                    </div>
+                    <form id="chat-form" class="chat-form">
+                        <label class="attachment-btn" id="attach-label">
+                            <input type="file" id="csv-upload" accept=".csv" style="display: none;">
+                            Attach
+                        </label>
+                        <input type="text" id="user-input"
+                            placeholder="Ask about revenue trends, operational metrics, or architecture..."
+                            autocomplete="off">
+                        <button type="submit" id="send-btn">
+                            <span id="send-label">Submit</span>
+                            <span id="cancel-label" style="display: none;">Stop</span>
+                        </button>
                     </form>
                 </div>
-            </section>
+            </div>
 
-            <!-- Dashboard Section -->
-            <section id="dashboard-section">
-                <header>
-                    <h1>System Performance</h1>
-                </header>
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <h3>Real-Time Latency</h3>
-                        <div class="value" id="p99-latency">-- ms</div>
-                        <p>P99 (SQLite Tracked)</p>
-                    </div>
-                    <div class="metric-card">
-                        <h3>Model Registry</h3>
-                        <div class="value" id="model-version">v--</div>
-                        <p>Champion Model</p>
-                    </div>
-                    <div class="metric-card">
-                        <h3>Data Drift (PSI)</h3>
-                        <div class="value" id="psi-status">--</div>
-                        <p>Stability Index</p>
-                    </div>
+            <!-- Minimal Footer -->
+            <footer class="app-footer">
+                <div class="footer-links">
+                    <a href="https://linkedin.com/in/r-vitor" target="_blank">LinkedIn</a>
+                    <span class="separator">/</span>
+                    <a href="https://github.com/SiqVitor" target="_blank">GitHub</a>
                 </div>
-                <div class="system-logs">
-                    <h3>Simulation Control</h3>
-                    <div class="btn-group">
-                        <button id="run-ml-all" class="primary-btn">Run Full Integration Test</button>
-                    </div>
-                    <div class="log-output" id="log-output">
-                        Waiting for simulation trigger...
-                    </div>
-                </div>
-            </section>
-        </main>
+                <div class="credits">Built by Vitor Rodrigues</div>
+            </footer>
+        </div>
     </div>
     <script src="/static/script.js"></script>
 </body>
+
 </html>

@@ -7,28 +7,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgomp1 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install ds_tools first (local dependency)
+# Copy project code and toolkit
 COPY ds_tools/ ds_tools/
-RUN pip install --no-cache-dir -e ds_tools/
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir -e ds_tools/
 
-# Install dependencies for all systems
-RUN pip install --no-cache-dir \
-    lightgbm>=4.0 \
-    matplotlib>=3.7 \
-    pandas \
-    scikit-learn \
-    google-generativeai \
-    python-dotenv \
-    joblib \
-    fastapi \
-    uvicorn \
-    python-multipart
+# Copy only necessary folders for the Agent
+COPY genai_agent/ genai_agent/
+COPY ds_tools/ ds_tools/
+COPY .env .
+COPY README.md .
+COPY requirements.txt .
 
-# Copy all demo code and config
-COPY . .
-
-# Expose port for Hugging Face Spaces
+# Expose port for Hugging Face Spaces / Production
 EXPOSE 7860
 
-# Run the Unified Portfolio UI on HF port
+# CMD for uvicorn launch
 CMD ["python", "-m", "uvicorn", "genai_agent.src.app:app", "--host", "0.0.0.0", "--port", "7860"]

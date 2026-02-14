@@ -35,20 +35,20 @@
 | [ds_tools](ds_tools/) | Reusable ML toolkit — sklearn transformers, evaluation reports, drift monitoring |
 | [Kaggle Competitions](kaggle/) | House Prices (top 12.5%), Titanic, applied statistics |
 
-## 🧪 Premium Interactive Workspace
+## 🛡️ ARGUS — Analytical Research Portal
 
-Experience the transition from "demo mocks" to **real production logic** through a unified web-based dashboard.
+Experience the transition from "demo mocks" to **real production logic** through a unified data analysis portal.
 
 ### 🚀 Quick Start (Docker)
-1.  **Build**: `docker build -t portfolio-demo .`
-2.  **Run**: `docker run -p 7860:7860 portfolio-demo`
+1.  **Build**: `docker build -t argus-agent .`
+2.  **Run**: `docker run -p 7860:7860 argus-agent`
 3.  **Explore**: Open [http://localhost:7860](http://localhost:7860) in your browser.
 
 ### 🕹️ What to Test in the Workspace:
-1.  **ARGUS Chat**: Ask *"Analyze the trends in genai_agent/demo/test_expenses.csv"*. (Note: Requires Gemini API Key in `genai_agent/.env`).
+1.  **ARGUS Chat**: Ask *"Analyze the trends in genai_agent/demo/test_expenses.csv"*. (Note: Requires Gemini API Key in `.env`).
 2.  **CSV Tooling**: Upload a personal CSV using the paperclip icon and ask ARGUS to summarize it.
-3.  **ML Dashboard**: Click "ML Dashboard" in the sidebar to view P99 latency and model versioning metrics in real-time.
-4.  **Simulation Control**: Trigger a full system integration test directly from the UI and watch the logs.
+3.  **Pro Analysis**: Request complex interpretations of portfolio files or data patterns.
+4.  **Security Layer**: Experience integrated rate limiting and privacy disclosures.
 
 ---
 

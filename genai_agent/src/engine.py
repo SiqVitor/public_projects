@@ -28,6 +28,10 @@ class ArgusEngine:
             model_name=model_name,
             system_instruction=system_instruction
         )
+        self.reset_chat()
+
+    def reset_chat(self):
+        """Re-initializes the chat session history."""
         self.chat = self.model.start_chat(history=[])
 
     def classify_intent(self, query: str) -> str:
