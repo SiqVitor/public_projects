@@ -23,21 +23,21 @@ jobs:
           pip install lightgbm>=4.0 matplotlib>=3.7 pytest>=7.0 ruff>=0.4
 
       - name: Lint (ruff)
-        run: ruff check "Fraud Detection/demo/" "End to End GenAI Agent/demo/" realtime_ml_system/demo/ ml_platform/demo/ tests/
+        run: ruff check fraud_detection/demo/ genai_agent/demo/ realtime_ml_system/demo/ ml_platform/demo/ tests/
 
       - name: Unit tests
         run: pytest tests/test_basic.py -v
 
       - name: Smoke demo — fraud
         run: |
-          python "Fraud Detection/demo/generate_synthetic.py"
-          python "Fraud Detection/demo/train_model.py"
-          test -f "Fraud Detection/demo/results/summary.json"
+          python fraud_detection/demo/generate_synthetic.py
+          python fraud_detection/demo/train_model.py
+          test -f fraud_detection/demo/results/summary.json
 
       - name: Smoke demo — argus eval
         run: |
-          python "End to End GenAI Agent/demo/mock_evaluator.py"
-          test -f "End to End GenAI Agent/demo/results/eval_report.json"
+          python genai_agent/demo/mock_evaluator.py
+          test -f genai_agent/demo/results/eval_report.json
 
       - name: Smoke demo — realtime ml system
         run: |
