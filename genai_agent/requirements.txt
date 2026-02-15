@@ -4,3 +4,12 @@ langchain-core
 langchain-google-genai
 duckduckgo-search
 pypdf
+fastapi
+uvicorn
+python-multipart
+pandas
+scikit-learn
+lightgbm
+joblib
+anyio
+pip-system-certs
