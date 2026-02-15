@@ -73,8 +73,7 @@ python ml_platform/demo/pipeline.py
 
 | Document | Audience |
 |----------|----------|
-| [architecture.md](architecture.md) | Technical interviewers — cross-project design patterns |
-| [model_card_template.md](model_card_template.md) | ML governance — fillable model card |
+| [Architecture](architecture.md) | Technical interviewers — cross-project design patterns |
 
 ---
 

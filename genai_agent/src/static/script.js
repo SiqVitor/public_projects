@@ -16,11 +16,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         userInput.style.height = userInput.scrollHeight + 'px';
     });
 
-    // Handle Shift+Enter for new line, Enter for submit
+    // Handle Shift+Enter for new line, Enter for submit (Desktop only)
     userInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatForm.dispatchEvent(new Event('submit'));
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        if (e.key === 'Enter') {
+            if (isMobile) {
+                // On mobile, Enter always inserts newline
+                return;
+            }
+
+            if (!e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
         }
     });
 
@@ -44,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Reset session on page load
     fetch('/reset', { method: 'POST' });
 
-    // --- CSV Handling ---
+    // --- File Handling (CSV/PDF) ---
     csvUpload.addEventListener('change', async (e) => {
         if (isProcessing) return;
         const file = e.target.files[0];
@@ -60,6 +69,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             currentFilePath = data.path;
             fileNameSpan.textContent = data.filename;
             filePreview.style.display = 'block';
+
+            // Adjust icon for PDF
+            const fileIcon = filePreview.querySelector('.file-icon');
+            if (file.name.endsWith('.pdf')) {
+                fileIcon.textContent = 'PDF:';
+            } else {
+                fileIcon.textContent = 'Data:';
+            }
         } catch (err) {
             console.error("Upload failed", err);
         }
@@ -121,7 +138,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const { done, value } = await reader.read();
                 if (done) break;
 
-                const chunk = decoder.decode(value);
+                let chunk = decoder.decode(value);
+
+                // Signal Detection for Session Warning
+                if (chunk.includes("[[TOKEN_WARNING]]")) {
+                    showError("Session limit approaching. Consider resetting the chat for optimal performance.");
+                    chunk = chunk.replace("[[TOKEN_WARNING]]", "");
+                }
+
                 if (chunk.startsWith("ERROR: ")) {
                     showError(chunk.replace("ERROR: ", ""));
                     agentMsgDiv.remove();

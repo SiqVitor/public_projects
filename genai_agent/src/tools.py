@@ -4,19 +4,54 @@ import pandas as pd
 from pypdf import PdfReader
 
 def analyze_csv(file_path: str) -> str:
-    """Reads a CSV and returns a summary for the LLM to analyze."""
+    """Reads a CSV and returns a sampled summary for the LLM to analyze."""
     try:
         df = pd.read_csv(file_path)
         cols = list(df.columns)
+        row_count = len(df)
+
+        # Sampling logic for efficiency
+        if row_count > 1000:
+            sample_head = df.head(10).to_dict(orient='records')
+            sample_tail = df.tail(10).to_dict(orient='records')
+            stats = df.describe().to_dict()
+            msg = f"(Sampled! Total rows: {row_count}. Showing first/last 10 rows for context.)"
+        else:
+            sample_head = df.head(5).to_dict(orient='records')
+            sample_tail = None
+            stats = df.describe().to_dict()
+            msg = f"(Full scan. Total rows: {row_count}.)"
+
         summary = {
             "available_columns": cols,
-            "row_count": len(df),
-            "sample_data_head": df.head(3).to_dict(orient='records'),
-            "numerical_statistics": df.describe().to_dict()
+            "row_count": row_count,
+            "sample_head": sample_head,
+            "sample_tail": sample_tail,
+            "numerical_statistics": stats,
+            "efficiency_note": msg
         }
-        return f"--- CRITICAL DATA REPORT: {file_path} ---\nSTRICT SCHEMA: The ONLY columns present in this file are: {cols}\nMetadata Summary: {summary}\n--- END OF REPORT ---"
+        return f"--- DATA REPORT: {file_path} ---\n{msg}\nColumns: {cols}\nSummary: {summary}\n--- END OF REPORT ---"
     except Exception as e:
         return f"Error reading CSV: {str(e)}"
+
+def analyze_pdf(file_path: str) -> str:
+    """Extracts text from a PDF efficiently (first/last pages + middle chunks)."""
+    try:
+        reader = PdfReader(file_path)
+        total_pages = len(reader.pages)
+
+        extracted_text = ""
+        # Strategy: Read first, middle, and last page to save tokens
+        pages_to_read = sorted(list(set([0, total_pages // 2, total_pages - 1])))
+
+        for p_idx in pages_to_read:
+            if p_idx < total_pages:
+                extracted_text += f"\n--- Page {p_idx + 1} ---\n"
+                extracted_text += reader.pages[p_idx].extract_text()[:2000] # Limit per page
+
+        return f"--- PDF REPORT: {file_path} ---\nTotal Pages: {total_pages}\nExtracted Content (Sampled):\n{extracted_text}\n--- END OF REPORT ---"
+    except Exception as e:
+        return f"Error reading PDF: {str(e)}"
 
 def search_career_info() -> str:
     """Reads Vitor's CV and LinkedIn PDFs to provide career context for RAG."""

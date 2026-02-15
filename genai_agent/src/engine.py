@@ -1,11 +1,12 @@
 import os
-import json
+import random
+import time
 from pathlib import Path
 from datetime import datetime
 from typing import Generator, List, Dict
 from dotenv import load_dotenv
 from groq import Groq
-from genai_agent.src.tools import calculate_metric, lookup_operational_presence, analyze_csv, search_career_info, search_repo_context
+from genai_agent.src.tools import calculate_metric, lookup_operational_presence, analyze_csv, analyze_pdf, search_career_info, search_repo_context
 
 # Load .env from project root or genai_agent folder
 load_dotenv() # Default CWD
@@ -13,7 +14,7 @@ load_dotenv(Path(__file__).parent.parent / ".env") # Inside genai_agent/
 load_dotenv(Path(__file__).parent.parent.parent / ".env") # In project root
 
 class ArgusEngine:
-    def __init__(self, model_name: str = "llama-3.1-8b-instant"):
+    def __init__(self, model_name: str = "meta-llama/llama-4-scout-17b-16e-instruct"):
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key or api_key.strip() == "":
             raise ValueError("GROQ_API_KEY is empty or missing. Please fill it in 'genai_agent/.env' and rebuild.")
@@ -28,6 +29,7 @@ class ArgusEngine:
             self.system_instruction = prompt_path.read_text(encoding="utf-8")
 
         self.reset_chat()
+        self.session_tokens = 0
 
     def reset_chat(self):
         """Re-initializes the chat session history."""
@@ -66,10 +68,23 @@ class ArgusEngine:
         except Exception as e:
             print(f"[!] Summarization failed: {e}")
 
-    def detect_prompt_injection(self, query: str) -> bool:
-        """Heuristic check for system instruction override attempts."""
-        attack_keywords = ["ignore initial", "system prompt", "new instructions", "ignore above", "desconsidere as instruções", "definições iniciais"]
-        return any(kw in query.lower() for kw in attack_keywords)
+    def detect_bot_query(self, query: str) -> bool:
+        """Detects patterns typical of automated scrapers/agents."""
+        bot_patterns = [
+            "list all", "recursively", "json only", "output as json",
+            "comprehensive index", "exhaustively", "extract all"
+        ]
+        return any(kw in query.lower() for kw in bot_patterns)
+
+    def detect_risk_content(self, text: str) -> bool:
+        """Checks for prompt injection, malicious, unethical or system-invasive patterns."""
+        risk_patterns = [
+            "ignore initial", "system prompt", "new instructions", "ignore above",
+            "desconsidere as instruções", "definições iniciais",
+            "how to hack", "exploit", "malware", "illegal", "unethical", "immoral",
+            "break the system", "system access", "bypass security"
+        ]
+        return any(kw in text.lower() for kw in risk_patterns)
 
     def classify_intent(self, query: str) -> str:
         """Determines the user's intent to route to the correct tool or flow."""
@@ -95,9 +110,9 @@ class ArgusEngine:
     def stream_query(self, query: str) -> Generator[str, None, None]:
         """Streams the LLM response via Groq."""
 
-        # 0. Safety & Input Limit
-        if self.detect_prompt_injection(query):
-            yield "ERROR: Safety Protocol — Direct instruction overrides detected. I am fixed to my core analytical protocol."
+        # 0. Safety & Risk Check
+        if self.detect_risk_content(query):
+            yield "ERROR: Safety Protocol — This request contains content that violates safety or ethical guidelines. I am restricted to professional and ethical analytical tasks."
             return
 
         # Limit large inputs to prevent prompt-overflow attacks or latency
@@ -128,12 +143,30 @@ class ArgusEngine:
 
         modified_query = sanitized_query
         # CSV Detection
+        # CSV Detection
         if ".csv" in sanitized_query.lower():
             parts = sanitized_query.split()
             path = next((p for p in parts if p.endswith(".csv")), None)
             if path and os.path.exists(path):
                 context = analyze_csv(path)
+                # Safeguard: Check file content for risk
+                if self.detect_risk_content(context):
+                    yield "ERROR: Safety Protocol — The attached file contains content that violates safety guidelines."
+                    return
                 modified_query = f"Based on this data: {context}\nUser Question: {sanitized_query}"
+
+        # PDF Detection
+        if ".pdf" in sanitized_query.lower():
+            parts = sanitized_query.split()
+            path = next((p for p in parts if p.endswith(".pdf")), None)
+            # Avoid re-reading the career pdfs which are handled by career RAG
+            if path and os.path.exists(path) and "cv_vitor" not in path.lower() and "linkedin" not in path.lower():
+                context = analyze_pdf(path)
+                # Safeguard: Check file content for risk
+                if self.detect_risk_content(context):
+                    yield "ERROR: Safety Protocol — The attached file contains content that violates safety guidelines."
+                    return
+                modified_query = f"Based on this PDF analysis: {context}\nUser Question: {sanitized_query}"
 
         # Combine for input
         final_user_content = f"{injection}\n<user_input>\n{modified_query}\n</user_input>"
@@ -142,6 +175,11 @@ class ArgusEngine:
         self.history.append({"role": "user", "content": final_user_content})
 
         try:
+            # Smart Tarpitting for potential bots
+            if self.detect_bot_query(sanitized_query):
+                print("[!] Bot-like pattern detected. Injecting tarpit latency...")
+                time.sleep(random.uniform(1.5, 3.5))
+
             response = self.client.chat.completions.create(
                 model=self.model_name,
                 messages=self.history,
@@ -156,6 +194,10 @@ class ArgusEngine:
                     text = chunk.choices[0].delta.content
                     full_response += text
                     yield text
+
+            # Token Tracking (Estimation)
+            estimated_tokens = (len(sanitized_query) + len(full_response)) // 4
+            self.session_tokens += estimated_tokens
 
             # Save assistant response to history
             self.history.append({"role": "assistant", "content": full_response})

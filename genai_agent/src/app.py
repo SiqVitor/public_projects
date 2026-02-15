@@ -13,30 +13,49 @@ import datetime
 
 # --- Rate Limiter ---
 class RateLimiter:
-    def __init__(self, requests_per_minute=5, daily_limit=50):
+    def __init__(self, requests_per_minute=20, daily_limit=200, min_interval=1.5):
         self.rpm = requests_per_minute
         self.daily_limit = daily_limit
+        self.min_interval = min_interval
         self.history = defaultdict(list)
         self.daily_count = defaultdict(lambda: {"count": 0, "date": None})
+        self.last_ts = defaultdict(float)
+        self.token_usage = defaultdict(int)
 
     def is_allowed(self, ip: str):
         now = datetime.datetime.now()
+        now_ts = now.timestamp()
         today = now.date()
 
-        # Daily limit check
+        # 0. Sub-second protection (Anti-Bot)
+        if now_ts - self.last_ts[ip] < self.min_interval:
+            return False, "Speed limit: Please wait for the current stream to settle."
+
+        # 1. Daily limit check
         if self.daily_count[ip]["date"] != today:
             self.daily_count[ip] = {"count": 0, "date": today}
         if self.daily_count[ip]["count"] >= self.daily_limit:
             return False, "Daily limit reached. Try again tomorrow."
 
-        # RPM check
+        # 2. RPM check
         self.history[ip] = [t for t in self.history[ip] if (now - t).total_seconds() < 60]
         if len(self.history[ip]) >= self.rpm:
             return False, f"Too many requests. Please wait {60 - int((now - self.history[ip][0]).total_seconds())}s."
 
+        # 3. Session Token Cap (20k)
+        if self.token_usage[ip] > 20000:
+            return False, "Session limit reached (20k tokens). Please refresh the page to reset context."
+
         self.history[ip].append(now)
         self.daily_count[ip]["count"] += 1
+        self.last_ts[ip] = now_ts
         return True, ""
+
+    def add_tokens(self, ip: str, count: int):
+        self.token_usage[ip] += count
+
+    def get_token_warning(self, ip: str) -> bool:
+        return self.token_usage[ip] > 12000
 
 limiter = RateLimiter()
 
@@ -84,17 +103,35 @@ async def chat(request: Request, message: str = Form(...), file_path: str = Form
 
     query = message
     if file_path:
-        print(f"[*] Analyzing CSV: {file_path}")
-        query = f"Using this data: {file_path}. Question: {message}"
+        file_ext = Path(file_path).suffix.lower()
+        if file_ext == '.csv':
+            print(f"[*] Analyzing CSV: {file_path}")
+            query = f"Using this data: {file_path}. Question: {message}"
+        elif file_ext == '.pdf':
+            print(f"[*] Analyzing PDF: {file_path}")
+            query = f"Using this PDF: {file_path}. Question: {message}"
+        else:
+            query = f"Using this file: {file_path}. Question: {message}"
 
     def generate():
         print(f"[*] Querying LLM: {message[:50]}...")
         first_chunk = True
+        full_text = ""
         for chunk in engine.stream_query(query):
             if first_chunk:
                 print(f"[*] First chunk received in {time.time() - start_time:.2f}s")
                 first_chunk = False
+            full_text += chunk
             yield chunk
+
+        # Update token usage on completion
+        estimated = len(full_text) // 4
+        limiter.add_tokens(ip, estimated)
+
+        # Warning Injector
+        if limiter.get_token_warning(ip):
+            yield "\n[[TOKEN_WARNING]]"
+
         print(f"[*] Total response time: {time.time() - start_time:.2f}s")
 
     return StreamingResponse(generate(), media_type="text/plain")
