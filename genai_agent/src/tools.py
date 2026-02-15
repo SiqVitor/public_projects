@@ -7,13 +7,14 @@ def analyze_csv(file_path: str) -> str:
     """Reads a CSV and returns a summary for the LLM to analyze."""
     try:
         df = pd.read_csv(file_path)
+        cols = list(df.columns)
         summary = {
-            "columns": list(df.columns),
-            "rows": len(df),
-            "head": df.head(3).to_dict(),
-            "description": df.describe().to_dict()
+            "available_columns": cols,
+            "row_count": len(df),
+            "sample_data_head": df.head(3).to_dict(orient='records'),
+            "numerical_statistics": df.describe().to_dict()
         }
-        return f"CSV Summary for {file_path}:\n{summary}"
+        return f"--- CRITICAL DATA REPORT: {file_path} ---\nSTRICT SCHEMA: The ONLY columns present in this file are: {cols}\nMetadata Summary: {summary}\n--- END OF REPORT ---"
     except Exception as e:
         return f"Error reading CSV: {str(e)}"
 
