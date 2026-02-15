@@ -168,19 +168,28 @@ class ArgusEngine:
         # CSV Detection
         if ".csv" in sanitized_query.lower():
             parts = sanitized_query.split()
-            path = next((p for p in parts if p.endswith(".csv")), None)
+            # Clean punctuation from parts before checking extension
+            path = next((p.rstrip(".,;:?!") for p in parts if p.lower().rstrip(".,;:?!").endswith(".csv")), None)
 
             # Logic to find the file
+            # SINGLE SOURCE OF TRUTH: app.py uses "genai_agent/uploads"
+            # We strictly check:
+            # 1. The exact path provided (if relative to CWD)
+            # 2. The file in the official uploads directory (flattened)
+
             final_path = None
-            if path:
-                # 1. Check direct path
-                if os.path.exists(path):
-                    final_path = path
-                # 2. Check uploads folder
-                elif os.path.exists(os.path.join("genai_agent", "uploads", path)):
-                    final_path = os.path.join("genai_agent", "uploads", path)
-                elif os.path.exists(os.path.join("uploads", path)):
-                    final_path = os.path.join("uploads", path)
+            uploads_dir = Path("genai_agent/uploads")
+
+            # Helper to check
+            check_paths = [
+                Path(path),                                  # 1. Relative/Absolute
+                uploads_dir / Path(path).name                # 2. In Uploads (Basename)
+            ]
+
+            for p in check_paths:
+                if p.exists():
+                    final_path = str(p)
+                    break
 
             if final_path:
                 context = analyze_csv(final_path)
@@ -194,19 +203,21 @@ class ArgusEngine:
         # PDF Detection
         if ".pdf" in sanitized_query.lower():
             parts = sanitized_query.split()
-            path = next((p for p in parts if p.endswith(".pdf")), None)
+            path = next((p.rstrip(".,;:?!") for p in parts if p.lower().rstrip(".,;:?!").endswith(".pdf")), None)
 
             # Logic to find the file
             final_path = None
-            if path:
-                # 1. Check direct path
-                if os.path.exists(path):
-                    final_path = path
-                # 2. Check uploads folder
-                elif os.path.exists(os.path.join("genai_agent", "uploads", path)):
-                    final_path = os.path.join("genai_agent", "uploads", path)
-                elif os.path.exists(os.path.join("uploads", path)):
-                    final_path = os.path.join("uploads", path)
+            uploads_dir = Path("genai_agent/uploads")
+
+            check_paths = [
+                Path(path),
+                uploads_dir / Path(path).name
+            ]
+
+            for p in check_paths:
+                if p.exists():
+                    final_path = str(p)
+                    break
 
             # Avoid re-reading the career pdfs which are handled by career RAG
             if final_path and "cv_vitor" not in final_path.lower() and "linkedin" not in final_path.lower():
