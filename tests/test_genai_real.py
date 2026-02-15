@@ -1,5 +1,5 @@
-import pytest
 from unittest.mock import MagicMock, patch
+
 from genai_agent.src.engine import ArgusEngine
 
 @patch("google.generativeai.configure")

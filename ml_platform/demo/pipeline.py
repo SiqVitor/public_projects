@@ -11,7 +11,6 @@ Output:
 
 import hashlib
 import json
-import shutil
 import sys
 import time
 from datetime import datetime, timezone
@@ -264,7 +263,7 @@ def select_champion(results: dict, prod_metrics: dict = None) -> str:
             print(f"  [*] SUCCESS: Challenger outperformed Production. Selecting {challenger_name}.")
             return challenger_name
         else:
-            print(f"  [!] REJECTED: Challenger did not outperform Production. Keeping current system.")
+            print("  [!] REJECTED: Challenger did not outperform Production. Keeping current system.")
             return None
 
     print(f"\n  Champion (Initial): {challenger_name} (AUC={challenger_auc:.4f})")
@@ -351,7 +350,7 @@ def run_pipeline():
         versions = sorted([int(d.name.lstrip("v")) for d in REGISTRY_DIR.iterdir() if d.name.startswith("v")])
         if versions:
             last_version = versions[-1]
-            with open(REGISTRY_DIR / f"v{last_version}" / "metadata.json", "r") as f:
+            with open(REGISTRY_DIR / f"v{last_version}" / "metadata.json") as f:
                 prod_metrics = json.load(f).get("metrics")
 
     champion_name = select_champion(results, prod_metrics)

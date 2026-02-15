@@ -1,7 +1,5 @@
-import pytest
 import sqlite3
-import os
-from pathlib import Path
+
 from realtime_ml_system.demo.online_inference import MetricsLogger
 
 def test_sqlite_logging_and_percentiles(tmp_path):
@@ -10,8 +8,8 @@ def test_sqlite_logging_and_percentiles(tmp_path):
     logger = MetricsLogger(db_file)
 
     # Log some dummy latencies: 10, 20, 30, 40, 50
-    for l in [10, 20, 30, 40, 50]:
-        logger.log_inference(l, 0.5, 0)
+    for lat in [10, 20, 30, 40, 50]:
+        logger.log_inference(lat, 0.5, 0)
 
     stats = logger.get_percentiles()
 

@@ -1,13 +1,12 @@
 import json
+import sqlite3
 import sys
 import time
-import sqlite3
 from pathlib import Path
 
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 
 # Ensure ds_tools and local modules are importable
@@ -114,7 +113,8 @@ def batch_train(seed: int = 42) -> lgb.LGBMClassifier:
 
 def run():
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    if DB_PATH.exists(): DB_PATH.unlink()
+    if DB_PATH.exists():
+        DB_PATH.unlink()
 
     print("=== Production Real-Time System Demo ===")
 
