@@ -3,3 +3,4 @@ python-dotenv
 langchain-core
 langchain-google-genai
 duckduckgo-search
+pypdf

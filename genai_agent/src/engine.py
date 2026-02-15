@@ -4,7 +4,7 @@ from typing import Generator, List
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-from genai_agent.src.tools import calculate_metric, lookup_operational_presence, analyze_csv
+from genai_agent.src.tools import calculate_metric, lookup_operational_presence, analyze_csv, search_career_info, search_repo_context
 
 # Load .env from project root or genai_agent folder
 load_dotenv() # Default CWD
@@ -115,6 +115,25 @@ class ArgusEngine:
         # 2. Dynamic System Injection (Date & Awareness)
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
         injection = f"\n\n[SYSTEM INJECTION]: Current Date: {now}. Always verify data patterns and engineering facts before responding. Stay anchor to the provided timeframe.\n\n"
+
+        # 3. Context Injection (Career & Repo RAG)
+        career_keywords = ["vitor", "autor", "author", "experience", "carreira", "career", "background", "habilidades", "skills", "currículo", "cv", "linkedin"]
+        repo_keywords = ["repo", "repositório", "código", "arquitetura", "pasta", "folder", "estrutura", "projeto", "project"]
+
+        trigger_career = any(kw in query.lower() for kw in career_keywords)
+        trigger_repo = any(kw in query.lower() for kw in repo_keywords)
+
+        if trigger_career or trigger_repo:
+            print(f"[*] Context trigger detected (Career: {trigger_career}, Repo: {trigger_repo}). Fetching context...")
+
+            if trigger_career:
+                career_context = search_career_info()
+                injection += f"\n[CAREER CONTEXT]: Based on Vitor's professional documents: {career_context}\n"
+
+            # For career questions, repo context provides physical proof of projects
+            if trigger_repo or trigger_career:
+                repo_context = search_repo_context()
+                injection += f"\n[REPO CONTEXT]: Current Repository Structure and Readmes: {repo_context}\n\n"
 
         modified_query = query
         # Simple file-path detection in query for CSV analysis

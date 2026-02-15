@@ -9,6 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy project code and toolkit
 COPY ds_tools/ ds_tools/
+COPY fraud_detection/ fraud_detection/
+COPY realtime_ml_system/ realtime_ml_system/
+COPY ml_platform/ ml_platform/
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir -e ds_tools/
@@ -19,6 +22,7 @@ COPY ds_tools/ ds_tools/
 COPY .env* .
 COPY README.md .
 COPY requirements.txt .
+COPY *.pdf .
 
 # Expose port for Hugging Face Spaces / Production
 EXPOSE 7860
