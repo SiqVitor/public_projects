@@ -34,7 +34,7 @@ User → Streamlit UI → FastAPI → LangGraph Orchestrator
 | LLM | Groq (Llama 3.3 70B) |
 | Orchestration | LangGraph |
 | RAG | LangChain + ChromaDB |
-| Embeddings | Google Gemini |
+| Embeddings | Groq / Sentence-Transformers (Local) |
 | API | FastAPI |
 | Frontend | Streamlit |
 | Database | PostgreSQL |
