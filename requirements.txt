@@ -13,3 +13,4 @@ lightgbm
 joblib
 anyio
 pip-system-certs
+groq
