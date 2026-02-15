@@ -12,7 +12,7 @@ load_dotenv(Path(__file__).parent.parent / ".env") # Inside genai_agent/
 load_dotenv(Path(__file__).parent.parent.parent / ".env") # In project root
 
 class ArgusEngine:
-    def __init__(self, model_name: str = "models/gemini-flash-latest"):
+    def __init__(self, model_name: str = "models/gemini-2.5-pro"):
         api_key = os.getenv("GOOGLE_API_KEY")
         if not api_key or api_key.strip() == "":
             raise ValueError("GOOGLE_API_KEY is empty or missing. Please fill it in 'genai_agent/.env' and rebuild.")
