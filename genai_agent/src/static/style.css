@@ -362,13 +362,19 @@ body::before {
     color: var(--text-primary);
 }
 
-.chat-form input {
+.chat-form textarea {
     flex-grow: 1;
     background: transparent;
     border: none;
     color: var(--text-primary);
     font-size: 14px;
     outline: none;
+    resize: none;
+    font-family: inherit;
+    padding: 8px 0;
+    max-height: 200px;
+    overflow-y: auto;
+    line-height: 1.5;
 }
 
 #send-btn {
@@ -382,11 +388,6 @@ body::before {
     font-size: 13px;
     cursor: pointer;
     transition: var(--transition-smooth);
-}
-
-#send-btn:hover {
-    transform: scale(1.02);
-    filter: brightness(1.1);
 }
 
 #send-btn.cancel-state {

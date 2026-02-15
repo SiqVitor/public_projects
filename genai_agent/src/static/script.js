@@ -9,6 +9,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const chatForm = document.getElementById('chat-form');
     const userInput = document.getElementById('user-input');
+
+    // Auto-resize textarea
+    userInput.addEventListener('input', () => {
+        userInput.style.height = 'auto';
+        userInput.style.height = userInput.scrollHeight + 'px';
+    });
+
+    // Handle Shift+Enter for new line, Enter for submit
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+
     const chatWindow = document.getElementById('chat-window');
     const csvUpload = document.getElementById('csv-upload');
     const filePreview = document.getElementById('file-preview');
@@ -73,6 +88,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setLoadingState(true);
         addMessage(text, 'user');
         userInput.value = '';
+        userInput.style.height = 'auto';
 
         abortController = new AbortController();
         const formData = new FormData();
