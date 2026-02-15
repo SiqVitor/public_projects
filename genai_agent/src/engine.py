@@ -148,10 +148,17 @@ class ArgusEngine:
         # Combine injection with delimited query to prevent spillover
         final_query = f"{injection}\n<user_input>\n{modified_query}\n{query if '.csv' in query.lower() else ''}\n</user_input>"
 
-        response = self.chat.send_message(final_query, stream=True)
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
+        try:
+            response = self.chat.send_message(final_query, stream=True)
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            if "429" in str(e) or "ResourceExhausted" in str(e):
+                yield "QUOTA EXCEEDED: The free-tier limit for Gemini has been reached. Please wait a few seconds before trying again."
+            else:
+                print(f"[!] INTERNAL LLM ERROR: {str(e)}")
+                yield "ERROR: An analytical error occurred. Please try a different query or wait a moment."
 
     def get_history(self) -> List:
         return self.chat.history

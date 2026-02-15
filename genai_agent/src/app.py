@@ -79,8 +79,8 @@ async def chat(request: Request, message: str = Form(...), file_path: str = Form
         # Try re-initializing if it failed at startup
         try:
             engine = ArgusEngine()
-        except Exception:
-            return {"error": "Engine not initialized. Check API Key."}
+        except Exception as e:
+            return StreamingResponse(iter([f"ERROR: Engine initialization failed: {str(e)}"]), media_type="text/plain")
 
     query = message
     if file_path:
