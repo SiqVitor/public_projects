@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (!e.shiftKey) {
                 e.preventDefault();
-                chatForm.dispatchEvent(new Event('submit'));
+                sendBtn.click();
             }
         }
     });
@@ -90,8 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // --- Chat Intelligence ---
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+    sendBtn.addEventListener('click', async () => {
 
         if (isProcessing) {
             if (abortController) abortController.abort();
