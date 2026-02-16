@@ -81,6 +81,7 @@ body::before {
     margin-bottom: 20px;
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     color: var(--accent-error);
     max-width: 1000px;
@@ -222,7 +223,7 @@ body::before {
     align-self: center;
     color: var(--text-dim);
     font-size: 13px;
-    width: 100%;
+    max-width: 85%;
     text-align: center;
 }
 
