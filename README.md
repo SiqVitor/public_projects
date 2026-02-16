@@ -35,16 +35,16 @@
 | [ds_tools](ds_tools/) | Reusable ML toolkit — sklearn transformers, evaluation reports, drift monitoring |
 | [Kaggle Competitions](kaggle/) | House Prices (top 12.5%), Titanic, applied statistics |
 
-## 🛡️ ARGUS — Analytical Research Portal
+## ARGUS — Analytical Research Portal
 
 Experience the transition from "demo mocks" to **real production logic** through a unified data analysis portal.
 
-### 🚀 Quick Start (Docker)
+### Quick Start (Docker)
 1.  **Build**: `docker build -t argus-agent .`
 2.  **Run**: `docker run -p 7860:7860 argus-agent`
 3.  **Explore**: Open [http://localhost:7860](http://localhost:7860) in your browser.
 
-### 🕹️ What to Test in the Workspace:
+### What to Test in the Workspace:
 1.  **ARGUS Chat**: Ask *"Analyze the trends in genai_agent/demo/test_expenses.csv"*. (Note: Requires Groq API Key in `.env`).
 2.  **CSV Tooling**: Upload a personal CSV using the paperclip icon and ask ARGUS to summarize it.
 3.  **Pro Analysis**: Request complex interpretations of portfolio files or data patterns.
@@ -52,7 +52,7 @@ Experience the transition from "demo mocks" to **real production logic** through
 
 ---
 
-## 🚀 Alternative Manual Run
+## Alternative Manual Run
 
 Requires Python 3.10+.
 ```bash
@@ -69,7 +69,7 @@ python ml_platform/demo/pipeline.py
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Audience |
 |----------|----------|
