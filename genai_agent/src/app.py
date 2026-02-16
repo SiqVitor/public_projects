@@ -4,6 +4,7 @@ from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, StreamingResponse
 from genai_agent.src.engine import ArgusEngine
+from genai_agent.src import supabase_logger as slog
 import json
 import asyncio
 from pathlib import Path
@@ -61,6 +62,7 @@ limiter = RateLimiter()
 
 app = FastAPI()
 engine = None
+current_conversation_id = None  # Supabase conversation tracker
 
 # Ensure directories exist
 UPLOAD_DIR = Path("genai_agent/uploads")
@@ -86,8 +88,9 @@ import time
 
 @app.post("/chat")
 async def chat(request: Request, message: str = Form(...), file_path: str = Form(None)):
-    global engine
+    global engine, current_conversation_id
     ip = request.client.host
+    user_agent = request.headers.get("user-agent", "")
     allowed, reason = limiter.is_allowed(ip)
     if not allowed:
         return StreamingResponse(iter([f"ERROR: {reason}"]), media_type="text/plain", status_code=429)
@@ -95,11 +98,20 @@ async def chat(request: Request, message: str = Form(...), file_path: str = Form
     start_time = time.time()
 
     if not engine:
-        # Try re-initializing if it failed at startup
         try:
             engine = ArgusEngine()
         except Exception as e:
             return StreamingResponse(iter([f"ERROR: Engine initialization failed: {str(e)}"]), media_type="text/plain")
+
+    # Ensure a conversation exists for logging
+    if not current_conversation_id:
+        try:
+            current_conversation_id = slog.create_conversation(ip, user_agent)
+        except Exception:
+            pass
+    # Sync conversation_id to engine for summarization logging
+    if engine and current_conversation_id:
+        engine.conversation_id = current_conversation_id
 
     query = message
     if file_path:
@@ -112,6 +124,12 @@ async def chat(request: Request, message: str = Form(...), file_path: str = Form
             query = f"Using this PDF: {file_path}. Question: {message}"
         else:
             query = f"Using this file: {file_path}. Question: {message}"
+
+    # Log user message
+    try:
+        slog.log_message(current_conversation_id, "user", message)
+    except Exception:
+        pass
 
     def generate():
         print(f"[*] Querying LLM: {message[:50]}...")
@@ -128,6 +146,13 @@ async def chat(request: Request, message: str = Form(...), file_path: str = Form
         estimated = len(full_text) // 4
         limiter.add_tokens(ip, estimated)
 
+        # Log agent response (fire-and-forget)
+        try:
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            slog.log_message(current_conversation_id, "agent", full_text, elapsed_ms, estimated)
+        except Exception:
+            pass
+
         # Warning Injector
         if limiter.get_token_warning(ip):
             yield "\n[[TOKEN_WARNING]]"
@@ -137,10 +162,17 @@ async def chat(request: Request, message: str = Form(...), file_path: str = Form
     return StreamingResponse(generate(), media_type="text/plain")
 
 @app.post("/reset")
-async def reset_session():
-    global engine
+async def reset_session(request: Request):
+    global engine, current_conversation_id
     if engine:
         engine.reset_chat()
+    # Start a new conversation for logging
+    try:
+        ip = request.client.host
+        user_agent = request.headers.get("user-agent", "")
+        current_conversation_id = slog.create_conversation(ip, user_agent)
+    except Exception:
+        pass
     return {"status": "session reset"}
 
 @app.get("/run-simulation")

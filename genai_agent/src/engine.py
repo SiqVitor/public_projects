@@ -8,6 +8,7 @@ from typing import Generator, List, Dict
 from dotenv import load_dotenv
 from groq import Groq
 from genai_agent.src.tools import calculate_metric, lookup_operational_presence, analyze_csv, analyze_pdf, search_career_info, search_repo_context, fetch_url_content
+from genai_agent.src import supabase_logger as slog
 
 # Load .env from project root or genai_agent folder
 load_dotenv() # Default CWD
@@ -31,6 +32,7 @@ class ArgusEngine:
 
         self.reset_chat()
         self.session_tokens = 0
+        self.conversation_id = None  # Set by app.py for Supabase logging
 
     def reset_chat(self):
         """Re-initializes the chat session history."""
@@ -73,9 +75,19 @@ class ArgusEngine:
             # Replace history: System + New Summary + Recent Messages
             self.history = [
                 system_msg,
-                {"role": "system", "content": summary_text} # Stored as system message for authority
+                {"role": "system", "content": summary_text}
             ] + recent_messages
             print("[*] History successfully summarized (recursively).")
+
+            # Log summarization to Supabase
+            try:
+                slog.log_summarization(
+                    self.conversation_id,
+                    summary_response.choices[0].message.content.strip(),
+                    len(middle_messages)
+                )
+            except Exception:
+                pass
         except Exception as e:
             print(f"[!] Summarization failed: {e}")
 
