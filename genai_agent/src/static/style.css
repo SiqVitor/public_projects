@@ -518,3 +518,32 @@ body::before {
         padding: 0 15px;
     }
 }
+
+/* --- Suggested Question Chips --- */
+.suggested-questions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0 12px 0;
+    justify-content: center;
+}
+
+.suggestion-chip {
+    background: rgba(99, 102, 241, 0.12);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+    color: var(--accent-glow);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    white-space: nowrap;
+}
+
+.suggestion-chip:hover {
+    background: rgba(99, 102, 241, 0.25);
+    border-color: var(--accent-hero);
+    box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+}

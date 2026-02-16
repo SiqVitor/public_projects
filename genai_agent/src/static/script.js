@@ -53,6 +53,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Reset session on page load
     fetch('/reset', { method: 'POST' });
 
+    // --- Suggested Question Chips ---
+    const suggestedQuestions = document.getElementById('suggested-questions');
+    document.querySelectorAll('.suggestion-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            userInput.value = chip.dataset.query;
+            suggestedQuestions.style.display = 'none';
+            chatForm.dispatchEvent(new Event('submit'));
+        });
+    });
+
     // --- File Handling (CSV/PDF) ---
     csvUpload.addEventListener('change', async (e) => {
         if (isProcessing) return;

@@ -137,7 +137,16 @@ class ArgusEngine:
         injection = f"\n\n[SYSTEM INJECTION]: Current Date: {now}. Verify facts before responding.\n\n"
 
         # 3. Context Injection (Career & Repo RAG)
-        career_keywords = ["vitor", "autor", "author", "experience", "carreira", "career", "background", "habilidades", "skills", "currículo", "cv", "linkedin"]
+        career_keywords = [
+            "vitor", "autor", "author", "experience", "carreira", "career",
+            "background", "habilidades", "skills", "currículo", "cv", "linkedin",
+            # LinkedIn post coverage: specific questions visitors will ask
+            "perform", "data scientist", "pricing", "specialist", "senior",
+            "rows", "scale", "real-time", "realtime", "200m", "million",
+            "cost", "cloud", "save", "strategy", "impact", "production",
+            "handle", "infrastructure", "deploy", "mlops", "ml engineer",
+            "machine learning", "data science", "engineering"
+        ]
         repo_keywords = ["repo", "repositório", "código", "arquitetura", "pasta", "folder", "estrutura", "projeto", "project"]
 
         trigger_career = any(kw in sanitized_query.lower() for kw in career_keywords)
@@ -165,11 +174,15 @@ class ArgusEngine:
 
         modified_query = sanitized_query
         # CSV Detection
-        # CSV Detection
         if ".csv" in sanitized_query.lower():
-            parts = sanitized_query.split()
-            # Clean punctuation from parts before checking extension
-            path = next((p.rstrip(".,;:?!") for p in parts if p.lower().rstrip(".,;:?!").endswith(".csv")), None)
+            # Extract path from app.py's known format: "Using this data: {path}. Question: ..."
+            csv_match = re.search(r'Using this data:\s*(.+?\.csv)', sanitized_query, re.IGNORECASE)
+            if csv_match:
+                path = csv_match.group(1).strip().rstrip(".,;:?!")
+            else:
+                # Fallback: token scan (works for simple filenames without spaces)
+                parts = sanitized_query.split()
+                path = next((p.rstrip(".,;:?!") for p in parts if p.lower().rstrip(".,;:?!").endswith(".csv")), None)
 
             # Logic to find the file
             # SINGLE SOURCE OF TRUTH: app.py uses "genai_agent/uploads"
@@ -178,18 +191,18 @@ class ArgusEngine:
             # 2. The file in the official uploads directory (flattened)
 
             final_path = None
-            uploads_dir = Path("genai_agent/uploads")
+            if path:
+                uploads_dir = Path("genai_agent/uploads")
 
-            # Helper to check
-            check_paths = [
-                Path(path),                                  # 1. Relative/Absolute
-                uploads_dir / Path(path).name                # 2. In Uploads (Basename)
-            ]
+                check_paths = [
+                    Path(path),                                  # 1. Relative/Absolute
+                    uploads_dir / Path(path).name                # 2. In Uploads (Basename)
+                ]
 
-            for p in check_paths:
-                if p.exists():
-                    final_path = str(p)
-                    break
+                for p in check_paths:
+                    if p.exists():
+                        final_path = str(p)
+                        break
 
             if final_path:
                 context = analyze_csv(final_path)
@@ -198,26 +211,34 @@ class ArgusEngine:
                     yield "ERROR: Safety Protocol — The attached file contains content that violates safety guidelines."
                     return
                 # Inject explicit system confirmation
-                injection += f"\n\n[SYSTEM: I have successfully read the CSV file at {final_path}. Use this data analysis:]\n{context}\n"
+                display_name = Path(final_path).name
+                injection += f"\n\n[SYSTEM: I have successfully read the CSV file '{display_name}'. Use this data analysis:]\n{context}\n"
 
         # PDF Detection
         if ".pdf" in sanitized_query.lower():
-            parts = sanitized_query.split()
-            path = next((p.rstrip(".,;:?!") for p in parts if p.lower().rstrip(".,;:?!").endswith(".pdf")), None)
+            # Extract path from app.py's known format: "Using this PDF: {path}. Question: ..."
+            pdf_match = re.search(r'Using this PDF:\s*(.+?\.pdf)', sanitized_query, re.IGNORECASE)
+            if pdf_match:
+                path = pdf_match.group(1).strip().rstrip(".,;:?!")
+            else:
+                # Fallback: token scan (works for simple filenames without spaces)
+                parts = sanitized_query.split()
+                path = next((p.rstrip(".,;:?!") for p in parts if p.lower().rstrip(".,;:?!").endswith(".pdf")), None)
 
             # Logic to find the file
             final_path = None
-            uploads_dir = Path("genai_agent/uploads")
+            if path:
+                uploads_dir = Path("genai_agent/uploads")
 
-            check_paths = [
-                Path(path),
-                uploads_dir / Path(path).name
-            ]
+                check_paths = [
+                    Path(path),
+                    uploads_dir / Path(path).name
+                ]
 
-            for p in check_paths:
-                if p.exists():
-                    final_path = str(p)
-                    break
+                for p in check_paths:
+                    if p.exists():
+                        final_path = str(p)
+                        break
 
             # Avoid re-reading the career pdfs which are handled by career RAG
             if final_path and "cv_vitor" not in final_path.lower() and "linkedin" not in final_path.lower():
@@ -226,7 +247,8 @@ class ArgusEngine:
                 if self.detect_risk_content(context):
                     yield "ERROR: Safety Protocol — The attached file contains content that violates safety guidelines."
                     return
-                injection += f"\n\n[SYSTEM: I have successfully read the PDF file at {final_path}. Use this content:]\n{context}\n"
+                display_name = Path(final_path).name
+                injection += f"\n\n[SYSTEM: I have successfully read the PDF file '{display_name}'. Use this content:]\n{context}\n"
 
         # Combine for input
         final_user_content = f"{injection}\n<user_input>\n{modified_query}\n</user_input>"

@@ -139,8 +139,13 @@ def search_career_info() -> str:
         "Vitor Rodrigues _ LinkedIn.pdf"
     ]
 
-    # Check current directory and root
-    search_paths = [".", ".."]
+    # Search relative to this file's location (robust for Docker/HF Spaces)
+    tools_dir = os.path.dirname(os.path.abspath(__file__))
+    search_paths = [
+        os.path.join(tools_dir, ".."),           # genai_agent/
+        os.path.join(tools_dir, "..", ".."),      # project root
+        ".",                                       # CWD fallback
+    ]
     all_context = ""
 
     for file_name in career_files:
