@@ -17,7 +17,7 @@ Environment:
 
 from __future__ import annotations
 
-import random
+import secrets
 import sys
 import urllib.parse
 import urllib.request
@@ -69,7 +69,7 @@ def get_root(space_url: str, timeout: int = 15) -> Tuple[bool, str]:
 
 
 def main() -> int:
-    msg = random.choice(MESSAGES) + " [keep]"
+    msg = secrets.choice(MESSAGES) + " [keep]"
     print(f"Keep-alive: sending message: {msg!r} to {SPACE_URL}")
 
     ok, info = post_chat(SPACE_URL, msg)
