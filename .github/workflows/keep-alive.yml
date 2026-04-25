@@ -6,54 +6,23 @@ on:
     - cron: "0 9 * * *"
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   keepalive:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository (for committing timestamp)
+      - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install requests
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install requests
-
       - name: Run keep-alive script
-        # this calls the simple script that sends a random message and writes keepalive_last.txt on success
+        env:
+          # override this if needed
+          SPACE_URL: https://siqvitor-argus.hf.space
         run: |
           set -euo pipefail
-          python scripts/keep_alive_simple.py
-
-      - name: Commit timestamp if updated
-        run: |
-          set -euo pipefail
-          LAST_FILE="keepalive_last.txt"
-          if [ -f "$LAST_FILE" ]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add "$LAST_FILE" || true
-            # commit only if there are staged changes
-            if git diff --cached --quiet; then
-              echo "No timestamp changes to commit"
-            else
-              git commit -m "chore(keep-alive): update last send timestamp [ci skip]" || true
-              # push back to current branch
-              BRANCH=$(git rev-parse --abbrev-ref HEAD)
-              git push origin "HEAD:${BRANCH}" || true
-            fi
-          else
-            echo "No keepalive_last.txt present; nothing to commit"
-          fi
-
-      - name: Done
-        run: echo "Keep Alive workflow finished"
+          # run the script from inside the genai_agent folder where it lives
+          python genai_agent/scripts/keep_alive.py
